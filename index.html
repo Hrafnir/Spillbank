@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Oppgjør</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-form, .summary, .payment-plan {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .input-group {
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .input-group label {
+            flex-basis: 100px; /* Juster etter behov */
+            font-weight: bold;
+        }
+        .input-group input[type="text"],
+        .input-group input[type="number"] {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 100px; /* For mindre skjermer */
+        }
+         .input-group button {
+            padding: 10px 15px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%; /* Full bredde i flex container */
+            margin-top: 10px;
+        }
+        .input-group button:hover {
+            background-color: #4cae4c;
+        }
+
+        #player-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        #player-list li {
+            border-bottom: 1px dashed #eee;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; /* For mindre skjermer */
+        }
+         #player-list li:last-child {
+            border-bottom: none;
+        }
+         #player-list .player-info {
+             flex-grow: 1;
+             margin-right: 10px;
+         }
+        #player-list .result {
+            font-weight: bold;
+            min-width: 100px; /* Gir plass til resultat */
+            text-align: right;
+        }
+        #player-list .win {
+            color: #28a745; /* Grønn */
+        }
+        #player-list .loss {
+            color: #dc3545; /* Rød */
+        }
+         #player-list .neutral {
+            color: #6c757d; /* Grå */
+        }
+         #player-list button.delete-btn {
+             background-color: #dc3545;
+             color: white;
+             border: none;
+             padding: 3px 8px;
+             border-radius: 3px;
+             cursor: pointer;
+             font-size: 0.8em;
+             margin-left: 10px;
+         }
+          #player-list button.delete-btn:hover {
+             background-color: #c82333;
+         }
+
+        .summary p {
+            margin: 5px 0;
+        }
+        .summary .highlight {
+            font-weight: bold;
+        }
+        .summary .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .summary .ok {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        #payment-plan-output {
+            white-space: pre-wrap; /* Bevarer linjeskift */
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-bottom: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        #copy-button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #copy-button:hover {
+            background-color: #0056b3;
+        }
+        #copy-feedback {
+            margin-left: 10px;
+            font-style: italic;
+            color: #28a745;
+        }
+
+         /* Enkle ikoner med pseudo-elementer */
+         .win::before { content: "💰 "; }
+         .loss::before { content: "💸 "; }
+         .neutral::before { content: "😐 "; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Poker Oppgjør</h1>
+
+    <div class="input-form">
+        <h2>Legg til spiller</h2>
+        <div class="input-group">
+            <label for="player-name">Navn:</label>
+            <input type="text" id="player-name" placeholder="Navn på spiller">
+        </div>
+        <div class="input-group">
+            <label for="buy-in">Innkjøp:</label>
+            <input type="number" id="buy-in" placeholder="Sum kjøpt inn for">
+        </div>
+        <div class="input-group">
+            <label for="cash-out">Uttak:</label>
+            <input type="number" id="cash-out" placeholder="Sum ved uttak">
+        </div>
+        <div class="input-group">
+             <button id="add-player-btn">Legg til Spiller</button>
+        </div>
+    </div>
+
+    <div id="player-list">
+        <h2>Spilleroversikt</h2>
+        <ul id="players">
+            <!-- Spillerliste genereres her -->
+        </ul>
+    </div>
+
+    <div class="summary">
+        <h2>Oppgjørsstatus</h2>
+        <p>Totalt Innkjøp: <span id="total-buy-in" class="highlight">0</span> kr</p>
+        <p>Totalt Uttak: <span id="total-cash-out" class="highlight">0</span> kr</p>
+        <p>Differanse: <span id="difference" class="highlight">0</span> kr <span id="difference-status"></span></p>
+        <p>Største Gevinst: <span id="biggest-win" class="highlight">Ingen</span></p>
+        <p>Største Tap: <span id="biggest-loss" class="highlight">Ingen</span></p>
+    </div>
+
+    <div class="payment-plan">
+        <h2>Optimalisert Betalingsplan</h2>
+        <p>Basert på prinsippet om færrest mulig transaksjoner:</p>
+        <div id="payment-plan-output">Trykk "Legg til Spiller" for å starte...</div>
+        <button id="copy-button">Kopier Plan</button>
+        <span id="copy-feedback"></span>
+    </div>
+
+</div>
+
+<script>
+    const playerNameInput = document.getElementById('player-name');
+    const buyInInput = document.getElementById('buy-in');
+    const cashOutInput = document.getElementById('cash-out');
+    const addPlayerBtn = document.getElementById('add-player-btn');
+    const playersUl = document.getElementById('players');
+    const totalBuyInSpan = document.getElementById('total-buy-in');
+    const totalCashOutSpan = document.getElementById('total-cash-out');
+    const differenceSpan = document.getElementById('difference');
+    const differenceStatusSpan = document.getElementById('difference-status');
+    const biggestWinSpan = document.getElementById('biggest-win');
+    const biggestLossSpan = document.getElementById('biggest-loss');
+    const paymentPlanOutput = document.getElementById('payment-plan-output');
+    const copyButton = document.getElementById('copy-button');
+    const copyFeedback = document.getElementById('copy-feedback');
+
+    let players = []; // Array to store player objects { id, name, buyin, cashout, result }
+    let nextId = 0;
+
+    // --- Event Listeners ---
+    addPlayerBtn.addEventListener('click', addPlayer);
+    copyButton.addEventListener('click', copyPlanToClipboard);
+    // Allow adding player by pressing Enter in the last input field
+    cashOutInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            addPlayer();
+        }
+    });
+
+
+    // --- Functions ---
+    function addPlayer() {
+        const name = playerNameInput.value.trim();
+        const buyin = parseFloat(buyInInput.value);
+        const cashout = parseFloat(cashOutInput.value);
+
+        if (!name || isNaN(buyin) || isNaN(cashout) || buyin < 0 || cashout < 0) {
+            alert("Vennligst fyll ut alle feltene med gyldige, positive tall.");
+            return;
+        }
+
+        const result = cashout - buyin;
+        players.push({ id: nextId++, name, buyin, cashout, result });
+
+        // Clear inputs
+        playerNameInput.value = '';
+        buyInInput.value = '';
+        cashOutInput.value = '';
+        playerNameInput.focus(); // Set focus back to name field for next entry
+
+        renderApp();
+    }
+
+    function deletePlayer(id) {
+        players = players.filter(player => player.id !== id);
+        renderApp();
+    }
+
+    function renderApp() {
+        renderPlayerList();
+        renderSummary();
+        calculateAndRenderPaymentPlan();
+    }
+
+    function renderPlayerList() {
+        playersUl.innerHTML = ''; // Clear existing list
+        if (players.length === 0) {
+            playersUl.innerHTML = '<li>Ingen spillere lagt til ennå.</li>';
+            return;
+        }
+
+        players.forEach(player => {
+            const li = document.createElement('li');
+            const resultRounded = Math.round(player.result * 100) / 100; // Round for display
+            let resultClass = 'neutral';
+            let resultSign = '';
+            if (resultRounded > 0) {
+                resultClass = 'win';
+                resultSign = '+';
+            } else if (resultRounded < 0) {
+                resultClass = 'loss';
+                // Minus sign is included automatically for negative numbers
+            }
+
+            li.innerHTML = `
+                <span class="player-info">
+                    <strong>${player.name}</strong> (Innkjøp: ${player.buyin} kr, Uttak: ${player.cashout} kr)
+                </span>
+                <span class="result ${resultClass}">
+                    Resultat: ${resultSign}${resultRounded.toFixed(2)} kr
+                </span>
+                <button class="delete-btn" data-id="${player.id}">Slett</button>
+            `;
+            // Add event listener to the delete button *after* creating it
+            li.querySelector('.delete-btn').addEventListener('click', (e) => {
+                const idToDelete = parseInt(e.target.getAttribute('data-id'));
+                deletePlayer(idToDelete);
+            });
+
+            playersUl.appendChild(li);
+        });
+    }
+
+    function renderSummary() {
+        if (players.length === 0) {
+             totalBuyInSpan.textContent = '0';
+             totalCashOutSpan.textContent = '0';
+             differenceSpan.textContent = '0';
+             differenceStatusSpan.textContent = '';
+             differenceStatusSpan.className = '';
+             biggestWinSpan.textContent = 'Ingen';
+             biggestLossSpan.textContent = 'Ingen';
+             return;
+        }
+
+        const totalBuyin = players.reduce((sum, p) => sum + p.buyin, 0);
+        const totalCashout = players.reduce((sum, p) => sum + p.cashout, 0);
+        // Use a small tolerance for floating point comparison
+        const difference = totalCashout - totalBuyin;
+        const isBalanced = Math.abs(difference) < 0.01; // Tolerance for floating point errors
+
+        totalBuyInSpan.textContent = totalBuyin.toFixed(2);
+        totalCashOutSpan.textContent = totalCashout.toFixed(2);
+        differenceSpan.textContent = difference.toFixed(2);
+
+        if (isBalanced) {
+            differenceStatusSpan.textContent = ' (OK - Balansert!)';
+            differenceStatusSpan.className = 'ok';
+        } else {
+            differenceStatusSpan.textContent = ' (FEIL - Sum uttak != Sum innkjøp!)';
+            differenceStatusSpan.className = 'error';
+        }
+
+        let maxWin = 0;
+        let winnerName = 'Ingen';
+        let maxLoss = 0; // Will store the most negative value
+        let loserName = 'Ingen';
+
+        players.forEach(p => {
+            if (p.result > maxWin) {
+                maxWin = p.result;
+                winnerName = `${p.name} (+${maxWin.toFixed(2)} kr)`;
+            }
+            if (p.result < maxLoss) {
+                maxLoss = p.result; // Keep the negative value
+                loserName = `${p.name} (${maxLoss.toFixed(2)} kr)`;
+            }
+        });
+
+        biggestWinSpan.textContent = winnerName;
+        biggestLossSpan.textContent = loserName;
+    }
+
+    function calculateAndRenderPaymentPlan() {
+         if (players.length === 0) {
+             paymentPlanOutput.textContent = 'Legg til spillere for å se planen.';
+             copyButton.style.display = 'none'; // Hide copy button if no plan
+             return;
+         }
+
+        // Check balance before attempting calculation
+        const totalBuyin = players.reduce((sum, p) => sum + p.buyin, 0);
+        const totalCashout = players.reduce((sum, p) => sum + p.cashout, 0);
+        const difference = totalCashout - totalBuyin;
+        if (Math.abs(difference) >= 0.01) {
+             paymentPlanOutput.textContent = 'Kan ikke beregne plan: Sum uttak er ikke lik sum innkjøp.';
+             copyButton.style.display = 'none';
+             return;
+        }
+
+
+        // --- The Algorithm ---
+        // Use a tolerance for floating point comparisons
+        const TOLERANCE = 0.001;
+
+        // Create lists of debtors and creditors with amounts needed/owed
+        let debtors = players
+            .filter(p => p.result < -TOLERANCE)
+            .map(p => ({ name: p.name, amount: Math.abs(p.result) })); // Amount is positive debt
+
+        let creditors = players
+            .filter(p => p.result > TOLERANCE)
+            .map(p => ({ name: p.name, amount: p.result })); // Amount is positive credit
+
+        // Sort descending by amount (largest debt/credit first)
+        debtors.sort((a, b) => b.amount - a.amount);
+        creditors.sort((a, b) => b.amount - a.amount);
+
+        const transactions = [];
+
+        // Use indices to avoid issues modifying arrays while iterating
+        let debtorIndex = 0;
+        let creditorIndex = 0;
+
+        while (debtorIndex < debtors.length && creditorIndex < creditors.length) {
+            const debtor = debtors[debtorIndex];
+            const creditor = creditors[creditorIndex];
+            const transferAmount = Math.min(debtor.amount, creditor.amount);
+
+            if (transferAmount > TOLERANCE) { // Only record meaningful transactions
+                 // Round the *final* transaction amount for display/practicality
+                const roundedTransferAmount = Math.round(transferAmount * 100) / 100;
+
+                transactions.push({
+                    from: debtor.name,
+                    to: creditor.name,
+                    amount: roundedTransferAmount
+                });
+
+                debtor.amount -= transferAmount;
+                creditor.amount -= transferAmount;
+            }
+
+            // Move to the next debtor if current one is settled (or close enough)
+            if (debtor.amount < TOLERANCE) {
+                debtorIndex++;
+            }
+
+            // Move to the next creditor if current one is fully paid (or close enough)
+            if (creditor.amount < TOLERANCE) {
+                creditorIndex++;
+            }
+        }
+
+        // --- Format Output ---
+        if (transactions.length === 0) {
+            paymentPlanOutput.textContent = 'Ingen transaksjoner nødvendig (alle gikk i null eller oppgjøret er balansert uten overføringer).';
+            copyButton.style.display = 'none';
+        } else {
+            let planText = `Betalingsplan (${transactions.length} transaksjoner):\n\n`;
+            transactions.forEach(t => {
+                planText += `* ${t.from} vippser ${t.amount.toFixed(2)} kr til ${t.to}\n`;
+            });
+            paymentPlanOutput.textContent = planText;
+            copyButton.style.display = 'inline-block'; // Show copy button
+        }
+        copyFeedback.textContent = ''; // Clear any previous copy feedback
+    }
+
+     function copyPlanToClipboard() {
+        const planText = paymentPlanOutput.textContent;
+        navigator.clipboard.writeText(planText).then(() => {
+            copyFeedback.textContent = 'Kopiert!';
+            // Optional: Clear feedback after a few seconds
+            setTimeout(() => { copyFeedback.textContent = ''; }, 3000);
+        }).catch(err => {
+            copyFeedback.textContent = 'Kunne ikke kopiere.';
+            console.error('Failed to copy text: ', err);
+        });
+    }
+
+    // Initial render on page load
+    renderApp();
+
+</script>
+
+</body>
+</html>
